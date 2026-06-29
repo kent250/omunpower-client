@@ -1,120 +1,114 @@
+import { Button, Input } from '@/components/ui';
+import { theme } from '@/constants/theme';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ResetPassword() {
     const [identifier, setIdentifier] = useState('');
     const [sent, setSent] = useState(false);
 
-    const handleSend = () => {
-        if (identifier.trim()) {
-            setSent(true);
-        }
-    };
-
     return (
         <KeyboardAvoidingView
-            style={{ flex: 1, backgroundColor: '#0D453C' }}
+            style={{ flex: 1, backgroundColor: theme.colors.primary }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <StatusBar style="light" />
 
-            <View style={{ flex: 1, paddingHorizontal: 28, justifyContent: 'center', gap: 24 }}>
+            <View style={{
+                flex: 1,
+                paddingHorizontal: theme.spacing['3xl'],
+                paddingVertical: theme.spacing['5xl'],
+                gap: theme.spacing['2xl'],
+            }}>
 
-                {/* Back button */}
+                {/* Back */}
                 <TouchableOpacity
                     onPress={() => router.back()}
                     style={{
-                        position: 'absolute', top: 60, left: 28,
-                        width: 40, height: 40, borderRadius: 12,
-                        backgroundColor: 'rgba(236,232,205,0.08)',
+                        width: 40, height: 40, borderRadius: theme.radius.md,
+                        backgroundColor: theme.colors.creamSubtle,
                         alignItems: 'center', justifyContent: 'center',
+                        alignSelf: 'flex-start',
                     }}>
-                    <Text style={{ color: '#ECE8CD', fontSize: 20 }}>←</Text>
+                    <Text style={{ color: theme.colors.cream, fontSize: 20 }}>←</Text>
                 </TouchableOpacity>
 
                 {!sent ? (
                     <>
-                        {/* Header */}
-                        <View style={{ gap: 8 }}>
-                            <Text style={{ color: '#ECE8CD', fontSize: 28, fontWeight: '700' }}>
+                        <View style={{ gap: theme.spacing.sm }}>
+                            <Text style={{
+                                color: theme.colors.cream,
+                                fontSize: theme.typography.sizes['3xl'],
+                                fontWeight: theme.typography.weights.bold,
+                            }}>
                                 Reset password
                             </Text>
-                            <Text style={{ color: 'rgba(236,232,205,0.5)', fontSize: 14, lineHeight: 22 }}>
-                                Enter the email or phone number linked to your account. We'll send you a reset link.
-                            </Text>
-                        </View>
-
-                        {/* Input */}
-                        <View>
-                            <Text style={{ color: 'rgba(236,232,205,0.6)', fontSize: 13, marginBottom: 6 }}>
-                                Email or phone number
-                            </Text>
-                            <TextInput
-                                value={identifier}
-                                onChangeText={setIdentifier}
-                                placeholder="you@example.com"
-                                placeholderTextColor="rgba(236,232,205,0.25)"
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                                style={{
-                                    backgroundColor: 'rgba(236,232,205,0.08)',
-                                    borderWidth: 0.5, borderColor: 'rgba(236,232,205,0.2)',
-                                    borderRadius: 12, padding: 14,
-                                    color: '#ECE8CD', fontSize: 15,
-                                }}
-                            />
-                        </View>
-
-                        {/* Send button */}
-                        <TouchableOpacity
-                            onPress={handleSend}
-                            style={{
-                                backgroundColor: '#ECE8CD', borderRadius: 14,
-                                paddingVertical: 16, alignItems: 'center',
+                            <Text style={{
+                                color: theme.colors.creamMuted,
+                                fontSize: theme.typography.sizes.md,
+                                lineHeight: theme.typography.lineHeights.tight,
                             }}>
-                            <Text style={{ color: '#0D453C', fontSize: 16, fontWeight: '600' }}>
-                                Send reset link
+                                Enter the email or phone number linked to your account.
                             </Text>
-                        </TouchableOpacity>
+                        </View>
 
-                        {/* Back to login */}
+                        <Input
+                            label="Email or phone number"
+                            value={identifier}
+                            onChangeText={setIdentifier}
+                            placeholder="you@example.com"
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                        />
+
+                        <Button
+                            label="Send reset link"
+                            onPress={() => { if (identifier.trim()) setSent(true); }}
+                        />
+
                         <TouchableOpacity onPress={() => router.back()} style={{ alignItems: 'center' }}>
-                            <Text style={{ color: 'rgba(236,232,205,0.5)', fontSize: 14 }}>
-                                Back to <Text style={{ color: '#ECE8CD', fontWeight: '500' }}>Sign in</Text>
+                            <Text style={{ color: theme.colors.creamMuted, fontSize: theme.typography.sizes.md }}>
+                                Back to{' '}
+                                <Text style={{ color: theme.colors.cream, fontWeight: theme.typography.weights.medium }}>
+                                    Sign in
+                                </Text>
                             </Text>
                         </TouchableOpacity>
                     </>
                 ) : (
-                    <>
-                        {/* Success state */}
-                        <View style={{ alignItems: 'center', gap: 16 }}>
+                    <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing['2xl'] }}>
+                        <View style={{ alignItems: 'center', gap: theme.spacing.lg }}>
                             <View style={{
-                                width: 80, height: 80, borderRadius: 24,
-                                backgroundColor: 'rgba(236,232,205,0.1)',
+                                width: 80, height: 80, borderRadius: theme.radius['2xl'],
+                                backgroundColor: theme.colors.creamSubtle,
                                 alignItems: 'center', justifyContent: 'center',
                             }}>
                                 <Text style={{ fontSize: 36 }}>📬</Text>
                             </View>
-                            <Text style={{ color: '#ECE8CD', fontSize: 24, fontWeight: '700', textAlign: 'center' }}>
+                            <Text style={{
+                                color: theme.colors.cream,
+                                fontSize: theme.typography.sizes['2xl'],
+                                fontWeight: theme.typography.weights.bold,
+                                textAlign: 'center',
+                            }}>
                                 Check your inbox
                             </Text>
-                            <Text style={{ color: 'rgba(236,232,205,0.5)', fontSize: 14, textAlign: 'center', lineHeight: 22 }}>
-                                We sent a reset link to {identifier}. Check your email and follow the instructions.
+                            <Text style={{
+                                color: theme.colors.creamMuted,
+                                fontSize: theme.typography.sizes.md,
+                                textAlign: 'center',
+                                lineHeight: theme.typography.lineHeights.tight,
+                            }}>
+                                We sent a reset link to {identifier}.
                             </Text>
                         </View>
 
-                        <TouchableOpacity
+                        <Button
+                            label="Back to sign in"
                             onPress={() => router.replace('/(auth)/login' as any)}
-                            style={{
-                                backgroundColor: '#ECE8CD', borderRadius: 14,
-                                paddingVertical: 16, alignItems: 'center',
-                            }}>
-                            <Text style={{ color: '#0D453C', fontSize: 16, fontWeight: '600' }}>
-                                Back to sign in
-                            </Text>
-                        </TouchableOpacity>
-                    </>
+                        />
+                    </View>
                 )}
             </View>
         </KeyboardAvoidingView>
