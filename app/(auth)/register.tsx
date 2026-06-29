@@ -1,4 +1,4 @@
-import { Button, Input, TabSwitcher } from '@/components/ui';
+import { Button, Footer, Input, TabSwitcher } from '@/components/ui';
 import { theme } from '@/constants/theme';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -25,38 +25,43 @@ export default function Register() {
             <ScrollView
                 contentContainerStyle={{
                     paddingHorizontal: theme.spacing['3xl'],
-                    paddingVertical: theme.spacing['5xl'],
+                    paddingTop: theme.spacing['5xl'],
+                    paddingBottom: theme.spacing['3xl'],
+                    flexGrow: 1,
+                    justifyContent: 'space-between',
                 }}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}>
 
-                {/* Back */}
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    style={{
-                        width: 40, height: 40, borderRadius: theme.radius.md,
-                        backgroundColor: theme.colors.creamSubtle,
-                        alignItems: 'center', justifyContent: 'center',
-                        marginBottom: theme.spacing['3xl'],
-                    }}>
-                    <Text style={{ color: theme.colors.cream, fontSize: 20 }}>←</Text>
-                </TouchableOpacity>
-
-                {/* Header */}
-                <View style={{ marginBottom: theme.spacing['3xl'], gap: theme.spacing.sm }}>
-                    <Text style={{
-                        color: theme.colors.cream,
-                        fontSize: theme.typography.sizes['3xl'],
-                        fontWeight: theme.typography.weights.bold,
-                    }}>
-                        Create account
-                    </Text>
-                    <Text style={{ color: theme.colors.creamMuted, fontSize: theme.typography.sizes.md }}>
-                        Start monitoring your energy today
-                    </Text>
-                </View>
-
+                {/* Main content */}
                 <View style={{ gap: theme.spacing.xl }}>
+
+                    {/* Back */}
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={{
+                            width: 40, height: 40, borderRadius: theme.radius.md,
+                            backgroundColor: theme.colors.creamSubtle,
+                            alignItems: 'center', justifyContent: 'center',
+                            alignSelf: 'flex-start',
+                        }}>
+                        <Text style={{ color: theme.colors.cream, fontSize: 20 }}>←</Text>
+                    </TouchableOpacity>
+
+                    {/* Header */}
+                    <View style={{ gap: theme.spacing.sm }}>
+                        <Text style={{
+                            color: theme.colors.cream,
+                            fontSize: theme.typography.sizes['3xl'],
+                            fontWeight: theme.typography.weights.bold,
+                        }}>
+                            Create account
+                        </Text>
+                        <Text style={{ color: theme.colors.creamMuted, fontSize: theme.typography.sizes.md }}>
+                            Start monitoring your energy today
+                        </Text>
+                    </View>
+
                     <TabSwitcher tabs={TABS} active={method} onChange={setMethod} />
 
                     <Input
@@ -70,9 +75,10 @@ export default function Register() {
                         label={method === 'email' ? 'Email address' : 'Phone number'}
                         value={identifier}
                         onChangeText={setIdentifier}
-                        placeholder={method === 'email' ? 'you@example.com' : '+250 7XX XXX XXX'}
+                        placeholder={method === 'email' ? 'you@example.com' : '7XX XXX XXX'}
                         keyboardType={method === 'email' ? 'email-address' : 'phone-pad'}
                         autoCapitalize="none"
+                        prefix={method === 'phone' ? '🇷🇼 +250' : undefined}
                     />
 
                     <Input
@@ -104,7 +110,12 @@ export default function Register() {
                             </Text>
                         </Text>
                     </TouchableOpacity>
+
                 </View>
+
+                {/* Footer pinned to bottom */}
+                <Footer />
+
             </ScrollView>
         </KeyboardAvoidingView>
     );
