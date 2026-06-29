@@ -23,19 +23,13 @@ const MENU_SECTIONS: { title: string; items: ProfileMenuItem[] }[] = [
                 icon: 'person-outline',
                 label: 'Edit profile',
                 sublabel: 'Name, email, phone number',
-                onPress: () => { },
+                onPress: () => router.push('/(profile)/edit-profile' as any),
             },
             {
                 icon: 'lock-closed-outline',
                 label: 'Change password',
                 sublabel: 'Update your password',
-                onPress: () => { },
-            },
-            {
-                icon: 'notifications-outline',
-                label: 'Notifications',
-                sublabel: 'Manage your alerts',
-                onPress: () => { },
+                onPress: () => router.push('/(profile)/change-password' as any),
             },
         ],
     },
@@ -44,15 +38,9 @@ const MENU_SECTIONS: { title: string; items: ProfileMenuItem[] }[] = [
         items: [
             {
                 icon: 'home-outline',
-                label: 'Home details',
-                sublabel: 'Address, type, size',
-                onPress: () => { },
-            },
-            {
-                icon: 'hardware-chip-outline',
-                label: 'My devices',
-                sublabel: 'Manage connected devices',
-                onPress: () => { },
+                label: 'Home address',
+                sublabel: 'Province, sector, cell, village',
+                onPress: () => router.push('/(profile)/home-address' as any),
             },
         ],
     },
@@ -62,12 +50,12 @@ const MENU_SECTIONS: { title: string; items: ProfileMenuItem[] }[] = [
             {
                 icon: 'help-circle-outline',
                 label: 'Help & FAQ',
-                onPress: () => { },
+                onPress: () => router.push('/(profile)/help-faqs' as any),
             },
             {
                 icon: 'chatbubble-outline',
                 label: 'Contact support',
-                onPress: () => { },
+                onPress: () => router.push('/(profile)/contact-support' as any),
             },
         ],
     },
@@ -108,6 +96,12 @@ export default function ProfileScreen() {
                 style={{ flex: 1, backgroundColor: theme.colors.cream }}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 32 }}>
+
+                {/* Fixes pull-down bounce */}
+                <View style={{
+                    position: 'absolute', top: -300, left: 0, right: 0, height: 300,
+                    backgroundColor: theme.colors.primary,
+                }} />
 
                 {/* Avatar section */}
                 <View style={{
