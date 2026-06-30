@@ -1,32 +1,112 @@
-import { Button, Input, ScreenHeader } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import { theme } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { decode } from 'base64-arraybuffer';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function EditProfile() {
-    const [fullName, setFullName] = useState('Jean-Paul Uwimana');
-    const [email, setEmail] = useState('jeanpaul@example.com');
-    const [phone, setPhone] = useState('788123456');
-    const [avatar, setAvatar] = useState<string | null>(null);
+    const { user } = useAuth();
+    const [fullName, setFullName] = useState(user?.user_metadata?.full_name || '');
+    const [email, setEmail] = useState(user?.email || '');
+    const [phone, setPhone] = useState(user?.user_metadata?.phone_number || '');
+    const [avatar, setAvatar] = useState<string | null>(user?.user_metadata?.avatar_url || null);
+    const [loading, setLoading] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) return;
 
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [1, 1],
-            quality: 0.8,
+            quality: 0.7,
+            base64: true,
         });
 
-        if (!result.canceled) {
-            setAvatar(result.assets[0].uri);
+        if (!result.canceled && result.assets[0].base64) {
+            await uploadAvatar(result.assets[0].base64, result.assets[0].uri);
+        }
+    };
+
+    const uploadAvatar = async (base64: string, uri: string) => {
+        if (!user) return;
+        setUploadingImage(true);
+        try {
+            const filePath = `${user.id}/avatar.jpg`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, decode(base64), {
+                    contentType: 'image/jpeg',
+                    upsert: true,
+                });
+
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+            const publicUrl = `${data.publicUrl}?t=${Date.now()}`; // cache bust
+
+            setAvatar(publicUrl);
+        } catch (error: any) {
+            Alert.alert('Upload failed', error.message);
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!fullName.trim()) {
+            Alert.alert('Error', 'Full name is required');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.updateUser({
+                data: {
+                    full_name: fullName.trim(),
+                    avatar_url: avatar,
+                    phone_number: phone.trim(),
+                },
+            });
+            if (error) throw error;
+            Alert.alert('Saved', 'Your profile has been updated.', [
+                { text: 'OK', onPress: () => router.back() },
+            ]);
+        } catch (error: any) {
+            Alert.alert('Error', error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const removeAvatar = async () => {
+        if (!user || !avatar) return;
+        setUploadingImage(true);
+        try {
+            const filePath = `${user.id}/avatar.jpg`; // adjust if you stored a different extension
+            await supabase.storage.from('avatars').remove([filePath]);
+
+            const { error } = await supabase.auth.updateUser({
+                data: { avatar_url: null },
+            });
+            if (error) throw error;
+
+            setAvatar(null);
+        } catch (error: any) {
+            Alert.alert('Error', error.message);
+        } finally {
+            setUploadingImage(false);
         }
     };
 
@@ -35,7 +115,29 @@ export default function EditProfile() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <ScreenHeader title="Edit profile" />
+            <View style={{
+                flexDirection: 'row', alignItems: 'center',
+                paddingHorizontal: theme.spacing.xl,
+                paddingBottom: theme.spacing.xl,
+                gap: theme.spacing.md,
+            }}>
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={{
+                        width: 40, height: 40, borderRadius: theme.radius.md,
+                        backgroundColor: theme.colors.creamSubtle,
+                        alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    <Ionicons name="arrow-back" size={20} color={theme.colors.cream} />
+                </TouchableOpacity>
+                <Text style={{
+                    color: theme.colors.cream,
+                    fontSize: theme.typography.sizes.xl,
+                    fontWeight: theme.typography.weights.semibold,
+                }}>
+                    Edit profile
+                </Text>
+            </View>
 
             <ScrollView
                 style={{ flex: 1, backgroundColor: theme.colors.primary }}
@@ -45,7 +147,7 @@ export default function EditProfile() {
 
                 {/* Avatar */}
                 <View style={{ alignItems: 'center', paddingVertical: theme.spacing.xl }}>
-                    <TouchableOpacity onPress={pickImage}>
+                    <TouchableOpacity onPress={pickImage} disabled={uploadingImage}>
                         <View style={{
                             width: 88, height: 88, borderRadius: 44,
                             backgroundColor: theme.colors.creamSubtle,
@@ -60,7 +162,6 @@ export default function EditProfile() {
                             )}
                         </View>
 
-                        {/* Camera badge */}
                         <View style={{
                             position: 'absolute', bottom: 0, right: 0,
                             width: 26, height: 26, borderRadius: 13,
@@ -77,8 +178,20 @@ export default function EditProfile() {
                         fontSize: theme.typography.sizes.sm,
                         marginTop: theme.spacing.sm,
                     }}>
-                        Tap to change photo
+                        {uploadingImage ? 'Uploading...' : 'Tap to change photo'}
                     </Text>
+
+                    {avatar && !uploadingImage && (
+                        <TouchableOpacity onPress={removeAvatar} style={{ marginTop: theme.spacing.xs }}>
+                            <Text style={{
+                                color: theme.colors.error,
+                                fontSize: theme.typography.sizes.sm,
+                                fontWeight: theme.typography.weights.medium,
+                            }}>
+                                Remove photo
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Fields */}
@@ -92,10 +205,8 @@ export default function EditProfile() {
                     <Input
                         label="Email address"
                         value={email}
-                        onChangeText={setEmail}
+                        editable={false}
                         placeholder="you@example.com"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
                     />
                     <Input
                         label="Phone number"
@@ -107,7 +218,7 @@ export default function EditProfile() {
                     />
                 </View>
 
-                <Button label="Save changes" onPress={() => router.back()} />
+                <Button label="Save changes" onPress={handleSave} loading={loading} />
 
             </ScrollView>
         </SafeAreaView>

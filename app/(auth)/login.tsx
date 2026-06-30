@@ -1,10 +1,11 @@
 import { Button, Footer, Input, TabSwitcher } from '@/components/ui';
 import { theme } from '@/constants/theme';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 const TABS = [
     { key: 'email', label: 'Email' },
@@ -15,6 +16,37 @@ export default function Login() {
     const [method, setMethod] = useState('email');
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async () => {
+        if (!identifier.trim() || !password.trim()) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            if (method === 'email') {
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: identifier.trim(),
+                    password: password.trim(),
+                });
+                if (error) throw error;
+            } else {
+                const phone = `+250${identifier.trim()}`;
+                const { error } = await supabase.auth.signInWithPassword({
+                    phone,
+                    password: password.trim(),
+                });
+                if (error) throw error;
+            }
+            router.replace('/(tabs)' as any);
+        } catch (error: any) {
+            Alert.alert('Login failed', error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <KeyboardAvoidingView
@@ -32,7 +64,6 @@ export default function Login() {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}>
 
-                {/* Main content */}
                 <View style={{ gap: theme.spacing.xl }}>
 
                     {/* Avatar + Logo */}
@@ -73,7 +104,7 @@ export default function Login() {
                         placeholder={method === 'email' ? 'you@example.com' : '7XX XXX XXX'}
                         keyboardType={method === 'email' ? 'email-address' : 'phone-pad'}
                         autoCapitalize="none"
-                        prefix={method === 'phone' ? '🇷🇼 +250' : undefined}
+                        prefix={method === 'phone' ? '+250' : undefined}
                     />
 
                     <View>
@@ -93,7 +124,7 @@ export default function Login() {
                         </TouchableOpacity>
                     </View>
 
-                    <Button label="Sign in" onPress={() => router.replace('/(tabs)' as any)} />
+                    <Button label="Sign in" onPress={handleLogin} loading={loading} />
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
                         <View style={{ flex: 1, height: 0.5, backgroundColor: theme.colors.creamBorder }} />
@@ -114,7 +145,6 @@ export default function Login() {
 
                 </View>
 
-                {/* Footer pinned to bottom */}
                 <Footer />
 
             </ScrollView>

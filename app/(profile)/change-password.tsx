@@ -1,23 +1,84 @@
-import { Button, Input, ScreenHeader } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import { theme } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChangePassword() {
+    const { user } = useAuth();
     const [current, setCurrent] = useState('');
     const [newPass, setNewPass] = useState('');
     const [confirm, setConfirm] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const fullName = user?.user_metadata?.full_name || 'OmunPower user';
+    const email = user?.email || user?.user_metadata?.phone_number || '';
+
+    const handleUpdate = async () => {
+        if (!current.trim() || !newPass.trim() || !confirm.trim()) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+        if (newPass.length < 8) {
+            Alert.alert('Error', 'New password must be at least 8 characters');
+            return;
+        }
+        if (newPass !== confirm) {
+            Alert.alert('Error', 'New passwords do not match');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: newPass.trim(),
+                current_password: current.trim(),
+            });
+            if (error) throw error;
+
+            Alert.alert('Success', 'Your password has been updated.', [
+                { text: 'OK', onPress: () => router.back() },
+            ]);
+        } catch (error: any) {
+            Alert.alert('Error', error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.primary }} edges={['top']}>
             <StatusBar style="light" />
 
             {/* Header */}
-            <ScreenHeader title="Change password" />
+            <View style={{
+                flexDirection: 'row', alignItems: 'center',
+                paddingHorizontal: theme.spacing.xl,
+                paddingBottom: theme.spacing.xl,
+                gap: theme.spacing.md,
+            }}>
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={{
+                        width: 40, height: 40, borderRadius: theme.radius.md,
+                        backgroundColor: theme.colors.creamSubtle,
+                        alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    <Ionicons name="arrow-back" size={20} color={theme.colors.cream} />
+                </TouchableOpacity>
+                <Text style={{
+                    color: theme.colors.cream,
+                    fontSize: theme.typography.sizes.xl,
+                    fontWeight: theme.typography.weights.semibold,
+                }}>
+                    Change password
+                </Text>
+            </View>
 
             <ScrollView
                 style={{ flex: 1, backgroundColor: theme.colors.primary }}
@@ -41,14 +102,14 @@ export default function ChangePassword() {
                         fontWeight: theme.typography.weights.semibold,
                         marginTop: theme.spacing.md,
                     }}>
-                        Jean-Paul Uwimana
+                        {fullName}
                     </Text>
                     <Text style={{
                         color: theme.colors.creamMuted,
                         fontSize: theme.typography.sizes.sm,
                         marginTop: 2,
                     }}>
-                        jeanpaul@example.com
+                        {email}
                     </Text>
                 </View>
 
@@ -96,7 +157,7 @@ export default function ChangePassword() {
                     />
                 </View>
 
-                <Button label="Update password" onPress={() => router.back()} />
+                <Button label="Update password" onPress={handleUpdate} loading={loading} />
 
             </ScrollView>
         </SafeAreaView>

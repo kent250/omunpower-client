@@ -1,8 +1,21 @@
-import { Stack } from 'expo-router';
+import { AuthProvider, useAuth } from '@/context/auth';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-export default function RootLayout() {
+function RootLayoutNav() {
+  const { session, loading } = useAuth();
+
+  useEffect(() => {
+    if (loading) return;
+    if (session) {
+      router.replace('/(tabs)' as any);
+    } else {
+      router.replace('/(onboarding)' as any);
+    }
+  }, [session, loading]);
+
   return (
     <SafeAreaProvider>
       <Stack
@@ -16,6 +29,19 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
       </Stack>
       <StatusBar style="light" backgroundColor={`#0D453C`} />
+    </SafeAreaProvider>
+  );
+}
+
+
+
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+        <StatusBar style="light" backgroundColor="#0D453C" />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

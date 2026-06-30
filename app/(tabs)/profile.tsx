@@ -1,8 +1,10 @@
 import { theme } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -15,64 +17,130 @@ interface ProfileMenuItem {
     danger?: boolean;
 }
 
-const MENU_SECTIONS: { title: string; items: ProfileMenuItem[] }[] = [
-    {
-        title: 'Account',
-        items: [
-            {
-                icon: 'person-outline',
-                label: 'Edit profile',
-                sublabel: 'Name, email, phone number',
-                onPress: () => router.push('/(profile)/edit-profile' as any),
-            },
-            {
-                icon: 'lock-closed-outline',
-                label: 'Change password',
-                sublabel: 'Update your password',
-                onPress: () => router.push('/(profile)/change-password' as any),
-            },
-        ],
-    },
-    {
-        title: 'My Home',
-        items: [
-            {
-                icon: 'home-outline',
-                label: 'Home address',
-                sublabel: 'Province, sector, cell, village',
-                onPress: () => router.push('/(profile)/home-address' as any),
-            },
-        ],
-    },
-    {
-        title: 'Support',
-        items: [
-            {
-                icon: 'help-circle-outline',
-                label: 'Help & FAQ',
-                onPress: () => router.push('/(profile)/help-faqs' as any),
-            },
-            {
-                icon: 'chatbubble-outline',
-                label: 'Contact support',
-                onPress: () => router.push('/(profile)/contact-support' as any),
-            },
-        ],
-    },
-    {
-        title: '',
-        items: [
-            {
-                icon: 'log-out-outline',
-                label: 'Sign out',
-                onPress: () => router.replace('/(auth)/login' as any),
-                danger: true,
-            },
-        ],
-    },
-];
 
 export default function ProfileScreen() {
+    const { signOut, user, loading } = useAuth();
+
+    const fullName = user?.user_metadata?.full_name;
+    const email = user?.email || user?.user_metadata?.phone_number || 'No contact on file';
+
+
+    if (loading) {
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.primary }} edges={['top']}>
+                <StatusBar style="light" />
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <ActivityIndicator color={theme.colors.cream} />
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            'Delete account',
+            'This will permanently delete your account and all associated data. This cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const { data: { session } } = await supabase.auth.getSession();
+
+                            const { error } = await supabase.functions.invoke('delete-account', {
+                                headers: { Authorization: `Bearer ${session?.access_token}` },
+                            });
+
+                            if (error) throw error;
+
+                            await signOut();
+                            router.replace('/(auth)/login' as any);
+                        } catch (error: any) {
+                            Alert.alert('Error', error.message);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+
+    const MENU_SECTIONS: { title: string; items: ProfileMenuItem[] }[] = [
+        {
+            title: 'Account',
+            items: [
+                {
+                    icon: 'person-outline',
+                    label: 'Edit profile',
+                    sublabel: 'Name, email, phone number',
+                    onPress: () => router.push('/(profile)/edit-profile' as any),
+                },
+                {
+                    icon: 'lock-closed-outline',
+                    label: 'Change password',
+                    sublabel: 'Update your password',
+                    onPress: () => router.push('/(profile)/change-password' as any),
+                },
+            ],
+        },
+        {
+            title: 'My Home',
+            items: [
+                {
+                    icon: 'home-outline',
+                    label: 'Home address',
+                    sublabel: 'Province, sector, cell, village',
+                    onPress: () => router.push('/(profile)/home-address' as any),
+                },
+            ],
+        },
+        {
+            title: 'Support',
+            items: [
+                {
+                    icon: 'help-circle-outline',
+                    label: 'Help & FAQ',
+                    sublabel: 'Find answers to your questions',
+                    onPress: () => router.push('/(profile)/help-faqs' as any),
+                },
+                {
+                    icon: 'chatbubble-outline',
+                    label: 'Contact support',
+                    sublabel: 'Get help from our support team',
+                    onPress: () => router.push('/(profile)/contact-support' as any),
+                },
+            ],
+        },
+        {
+            title: '',
+            items: [
+                {
+                    icon: 'log-out-outline',
+                    label: 'Sign out',
+                    sublabel: 'Sign out of your account',
+                    onPress: async () => {
+                        await signOut();
+                        router.replace('/(auth)/login' as any);
+                    },
+                    danger: true,
+                },
+                {
+                    icon: 'trash-outline',
+                    label: 'Delete account',
+                    sublabel: 'Permanently delete your account and data',
+                    onPress: handleDeleteAccount,
+                    danger: true,
+                },
+            ],
+        },
+    ];
+
+
+
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.primary }} edges={['top']}>
             <StatusBar style="light" />
@@ -117,8 +185,16 @@ export default function ProfileScreen() {
                         backgroundColor: theme.colors.creamSubtle,
                         alignItems: 'center', justifyContent: 'center',
                         borderWidth: 2, borderColor: theme.colors.creamBorder,
+                        overflow: 'hidden',
                     }}>
-                        <Ionicons name="person" size={44} color={theme.colors.cream} />
+                        {user?.user_metadata?.avatar_url ? (
+                            <Image
+                                source={{ uri: user.user_metadata.avatar_url }}
+                                style={{ width: 88, height: 88, borderRadius: 44 }}
+                            />
+                        ) : (
+                            <Ionicons name="person" size={44} color={theme.colors.cream} />
+                        )}
                     </View>
 
                     {/* Name + email */}
@@ -128,10 +204,10 @@ export default function ProfileScreen() {
                             fontSize: theme.typography.sizes.xl,
                             fontWeight: theme.typography.weights.semibold,
                         }}>
-                            Jean-Paul Uwimana
+                            {fullName}
                         </Text>
                         <Text style={{ color: theme.colors.creamMuted, fontSize: theme.typography.sizes.sm }}>
-                            jeanpaul@example.com
+                            {email}
                         </Text>
                     </View>
 

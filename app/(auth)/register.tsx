@@ -1,9 +1,10 @@
 import { Button, Footer, Input, TabSwitcher } from '@/components/ui';
 import { theme } from '@/constants/theme';
+import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 const TABS = [
     { key: 'email', label: 'Email' },
@@ -16,6 +17,55 @@ export default function Register() {
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleRegister = async () => {
+        if (!fullName.trim() || !identifier.trim() || !password.trim()) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+        if (password !== confirmPassword) {
+            Alert.alert('Error', 'Passwords do not match');
+            return;
+        }
+        if (password.length < 8) {
+            Alert.alert('Error', 'Password must be at least 8 characters');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            if (method === 'email') {
+                const { error } = await supabase.auth.signUp({
+                    email: identifier.trim(),
+                    password: password.trim(),
+                    options: {
+                        data: { full_name: fullName.trim() },
+                    },
+                });
+                if (error) throw error;
+                // Navigate to OTP screen passing the email
+                router.push({
+                    pathname: '/(auth)/verify-otp' as any,
+                    params: { email: identifier.trim() },
+                });
+            } else {
+                const { error } = await supabase.auth.signUp({
+                    phone: `+250${identifier.trim()}`,
+                    password: password.trim(),
+                    options: {
+                        data: { full_name: fullName.trim() },
+                    },
+                });
+                if (error) throw error;
+                router.replace('/(tabs)' as any);
+            }
+        } catch (error: any) {
+            Alert.alert('Registration failed', error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <KeyboardAvoidingView
@@ -33,7 +83,6 @@ export default function Register() {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}>
 
-                {/* Main content */}
                 <View style={{ gap: theme.spacing.xl }}>
 
                     {/* Back */}
@@ -48,7 +97,6 @@ export default function Register() {
                         <Text style={{ color: theme.colors.cream, fontSize: 20 }}>←</Text>
                     </TouchableOpacity>
 
-                    {/* Header */}
                     <View style={{ gap: theme.spacing.sm }}>
                         <Text style={{
                             color: theme.colors.cream,
@@ -78,7 +126,7 @@ export default function Register() {
                         placeholder={method === 'email' ? 'you@example.com' : '7XX XXX XXX'}
                         keyboardType={method === 'email' ? 'email-address' : 'phone-pad'}
                         autoCapitalize="none"
-                        prefix={method === 'phone' ? '🇷🇼 +250' : undefined}
+                        prefix={method === 'phone' ? '+250' : undefined}
                     />
 
                     <Input
@@ -97,10 +145,7 @@ export default function Register() {
                         secureTextEntry
                     />
 
-                    <Button
-                        label="Create account"
-                        onPress={() => router.replace('/(tabs)' as any)}
-                    />
+                    <Button label="Create account" onPress={handleRegister} loading={loading} />
 
                     <TouchableOpacity onPress={() => router.back()} style={{ alignItems: 'center' }}>
                         <Text style={{ color: theme.colors.creamMuted, fontSize: theme.typography.sizes.md }}>
@@ -113,7 +158,6 @@ export default function Register() {
 
                 </View>
 
-                {/* Footer pinned to bottom */}
                 <Footer />
 
             </ScrollView>
